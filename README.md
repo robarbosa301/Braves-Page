@@ -1,6 +1,6 @@
 # Braves Page
 
-Página de apresentação da Braves Engenharia para clientes nas redes sociais: serviços e as ferramentas próprias (Vizion5, Braves BIM Field e Minha Obra Braves).
+Página de apresentação da Braves Engenharia: projetos em BIM, integração de disciplinas e execução de obra, com as ferramentas próprias (Vizion5, Braves BIM Field e Minha Obra Braves).
 
 Endereço: https://robarbosa301.github.io/Braves-Page/
 
@@ -8,4 +8,7 @@ Publicação: GitHub Pages a partir da branch `main`, pasta raiz. Cada alteraç�
 
 Contatos (WhatsApp, Instagram e e-mail): edite o bloco `CONTATO` no fim de `index.html`.
 
-As imagens em `img/` são capturas de tela dos apps. Este repositório não altera os repositórios dos apps.
+- `img/`: capturas de tela dos apps.
+- `js/three-r128.min.js`: three.js (licença MIT em `js/three-LICENSE.txt`), usado no modelo 3D da abertura.
+
+Este repositório não altera os repositórios dos apps.
