@@ -98,6 +98,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .mode i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 .mode[aria-pressed="true"] { color: #14130F; background: var(--chalk); border-color: var(--chalk); }
 .tag-clash { position: absolute; right: 8px; bottom: 8px; max-width: 250px; background: rgba(17, 17, 15, .92); border: 1px solid var(--clash); border-radius: 12px; padding: 12px 14px; font-size: 13px; display: grid; gap: 4px; transition: opacity .3s, transform .3s; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin: 12px 0 0; font-size: 12.5px; color: var(--mute); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid rgba(255,255,255,.15); }
 .tag-clash b { font-family: var(--f-mono); font-weight: 500; color: var(--clash); font-size: 12px; letter-spacing: .06em; }
 .tag-clash[hidden] { display: none !important; }
 .stage-note { position: absolute; left: 8px; top: 18px; font-family: var(--f-mono); font-size: 11.5px; color: var(--dim); letter-spacing: .06em; }
@@ -250,22 +253,24 @@ footer .brand img { width: 32px; height: 32px; }
       </div>
 
       <div class="stage">
-        <div class="stage-canvas" id="stage" aria-label="Modelo BIM ilustrativo de um edifício de dois pavimentos. Arraste para girar.">
+        <div class="stage-canvas" id="stage" aria-label="Modelo BIM ilustrativo de um sobrado com arquitetura, estrutura, instalações hidrossanitárias e elétricas. Arraste para girar.">
           <div class="stage-fallback" id="fallback" hidden><img src="img/vizion5-obra.webp" width="1400" height="860" alt="Modelo de fundação em 3D no Vizion5"></div>
           <span class="stage-note">MODELO ILUSTRATIVO · ARRASTE PARA GIRAR</span>
           <div class="tag-clash" id="clashTag" hidden>
-            <b>INTERFERÊNCIA · 1º PAVIMENTO</b>
-            <span>Tubulação de esgoto ø100 atravessa a viga do eixo B.</span>
-            <span style="color:var(--mute)">Resolvida no modelo com furo previsto na viga, antes da concretagem.</span>
+            <b>INTERFERÊNCIA · FORRO DO TÉRREO</b>
+            <span>Ramal de esgoto ø100 do banheiro superior atravessa a viga do eixo C.</span>
+            <span style="color:var(--mute)">Resolvida no modelo com furo e luva previstos na viga, antes da concretagem.</span>
           </div>
         </div>
         <div class="modes" role="group" aria-label="Disciplinas do modelo">
           <button class="mode" type="button" data-mode="all" aria-pressed="true">Modelo completo</button>
           <button class="mode" type="button" data-mode="arq" aria-pressed="false"><i style="background:#E9E5DA"></i>Arquitetura</button>
           <button class="mode" type="button" data-mode="est" aria-pressed="false"><i style="background:#9C988E"></i>Estrutura</button>
-          <button class="mode" type="button" data-mode="mep" aria-pressed="false"><i style="background:#6FA3C8"></i>Instalações</button>
+          <button class="mode" type="button" data-mode="hid" aria-pressed="false"><i style="background:#4C9BE8"></i>Hidrossanitário</button>
+          <button class="mode" type="button" data-mode="ele" aria-pressed="false"><i style="background:#E3B341"></i>Elétrica</button>
           <button class="mode" type="button" data-mode="clash" aria-pressed="false"><i style="background:#D2604A"></i>Interferências</button>
         </div>
+        <p class="legend" id="legend" hidden></p>
       </div>
     </div>
   </section>
@@ -455,206 +460,6 @@ document.querySelectorAll(".copy").forEach(function (b) {
 </script>
 
 <script src="js/three-r128.min.js"></script>
-<script>
-/* Modelo BIM ilustrativo: 2 pavimentos, com arquitetura, estrutura e instalações separadas por disciplina. */
-(function () {
-  var host = document.getElementById("stage");
-  var fallback = document.getElementById("fallback");
-  var clashTag = document.getElementById("clashTag");
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!window.THREE) { fallback.hidden = false; return; }
-  var renderer;
-  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
-  catch (e) { fallback.hidden = false; return; }
-
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  host.insertBefore(renderer.domElement, host.firstChild);
-
-  var scene = new THREE.Scene();
-  var camera = new THREE.PerspectiveCamera(32, 1, 0.1, 200);
-  scene.add(new THREE.HemisphereLight(0xF3F1EA, 0x22201B, 0.7));
-  var sun = new THREE.DirectionalLight(0xFFF4E0, 0.9); sun.position.set(14, 22, 10); scene.add(sun);
-  var rim = new THREE.DirectionalLight(0xC9D6E0, 0.35); rim.position.set(-12, 8, -14); scene.add(rim);
-
-  var model = new THREE.Group(); scene.add(model);
-  var groups = { arq: new THREE.Group(), est: new THREE.Group(), mep: new THREE.Group(), clash: new THREE.Group() };
-  Object.keys(groups).forEach(function (k) { model.add(groups[k]); });
-
-  var LX = 12, LZ = 8, H = 3.1, FLOORS = 2;
-  var mats = [];
-  function mat(color, opacity, extra) {
-    var m = new THREE.MeshStandardMaterial(Object.assign({ color: color, roughness: .85, metalness: .05, transparent: true, opacity: opacity, depthWrite: opacity > .9 }, extra || {}));
-    m.userData.base = opacity; mats.push(m); return m;
-  }
-  var edgeMats = [];
-  function edgeMat(color, opacity) { var m = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity }); m.userData.base = opacity; edgeMats.push(m); return m; }
-
-  var M = {
-    concrete: mat(0x9C988E, 1), slab: mat(0xB9B5AA, 1), footing: mat(0x7E7A72, 1),
-    wall: mat(0xE9E5DA, .93), glass: mat(0x8FB3C9, .35, { roughness: .1, metalness: .3 }),
-    frame: mat(0x2B2A27, 1), pipe: mat(0x6FA3C8, 1, { roughness: .4, metalness: .3 }), pipeY: mat(0xDEC28D, 1, { roughness: .4, metalness: .3 }),
-    clash: mat(0xD2604A, .95, { emissive: 0xD2604A, emissiveIntensity: .9, depthTest: false })
-  };
-  var E = { est: edgeMat(0x4A4740, .7), arq: edgeMat(0x8A867C, .55) };
-
-  function box(g, w, h, d, x, y, z, m, edge) {
-    var geo = new THREE.BoxGeometry(w, h, d);
-    var mesh = new THREE.Mesh(geo, m); mesh.position.set(x, y, z); g.add(mesh);
-    if (edge) { var l = new THREE.LineSegments(new THREE.EdgesGeometry(geo), edge); l.position.copy(mesh.position); g.add(l); }
-    return mesh;
-  }
-  function pipe(g, a, b, r, m) {
-    var va = new THREE.Vector3(a[0], a[1], a[2]), vb = new THREE.Vector3(b[0], b[1], b[2]);
-    var len = va.distanceTo(vb);
-    var geo = new THREE.CylinderGeometry(r, r, len, 14);
-    var mesh = new THREE.Mesh(geo, m);
-    mesh.position.copy(va.clone().add(vb).multiplyScalar(.5));
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.clone().sub(va).normalize());
-    g.add(mesh); return mesh;
-  }
-
-  var xs = [0, 4, 8, 12], zs = [0, 4, 8];
-  // Estrutura: sapatas, pilares, vigas e lajes
-  xs.forEach(function (x) { zs.forEach(function (z) {
-    box(groups.est, 1.1, .45, 1.1, x, -.62, z, M.footing, E.est);
-    box(groups.est, .22, H * FLOORS + .2, .4, x, (H * FLOORS + .2) / 2 - .4, z, M.concrete, E.est);
-  }); });
-  for (var f = 1; f <= FLOORS; f++) {
-    var y = f * H;
-    box(groups.est, LX + .5, .14, LZ + .5, LX / 2, y, LZ / 2, M.slab, E.est);
-    zs.forEach(function (z) { box(groups.est, LX, .45, .2, LX / 2, y - .29, z, M.concrete, E.est); });
-    xs.forEach(function (x) { box(groups.est, .2, .45, LZ, x, y - .29, LZ / 2, M.concrete, E.est); });
-  }
-  box(groups.est, LX + .5, .14, LZ + .5, LX / 2, -.07, LZ / 2, M.slab, E.est);
-
-  // Arquitetura: paredes com janelas na fachada frontal e lateral
-  var T = .16;
-  for (var fl = 0; fl < FLOORS; fl++) {
-    var y0 = fl * H, wh = H - .6;
-    for (var i = 0; i < 3; i++) {
-      var cx = 2 + i * 4;
-      // fachada frontal (z = 8): peitoril + vidro + verga
-      box(groups.arq, 3.6, 1.0, T, cx, y0 + .5, LZ, M.wall, E.arq);
-      box(groups.arq, 3.6, .45, T, cx, y0 + wh - .22, LZ, M.wall, E.arq);
-      box(groups.arq, 3.4, wh - 1.45, .05, cx, y0 + 1.0 + (wh - 1.45) / 2, LZ, M.glass);
-      box(groups.arq, .06, wh - 1.45, .1, cx, y0 + 1.0 + (wh - 1.45) / 2, LZ, M.frame);
-      // fachada posterior cheia
-      box(groups.arq, 3.6, wh, T, cx, y0 + wh / 2, 0, M.wall, E.arq);
-    }
-    for (var j = 0; j < 2; j++) {
-      var cz = 2 + j * 4;
-      box(groups.arq, T, wh, 3.6, 0, y0 + wh / 2, cz, M.wall, E.arq);
-      box(groups.arq, T, 1.0, 3.6, LX, y0 + .5, cz, M.wall, E.arq);
-      box(groups.arq, T, .45, 3.6, LX, y0 + wh - .22, cz, M.wall, E.arq);
-      box(groups.arq, .05, wh - 1.45, 3.4, LX, y0 + 1.0 + (wh - 1.45) / 2, cz, M.glass);
-    }
-    // parede interna
-    box(groups.arq, T, wh, 3.6, 8, y0 + wh / 2, 6, M.wall, E.arq);
-  }
-  // platibanda
-  box(groups.arq, LX + .5, .9, T, LX / 2, H * FLOORS + .5, LZ + .25, M.wall, E.arq);
-  box(groups.arq, LX + .5, .9, T, LX / 2, H * FLOORS + .5, -.25, M.wall, E.arq);
-  box(groups.arq, T, .9, LZ + .5, -.25, H * FLOORS + .5, LZ / 2, M.wall, E.arq);
-  box(groups.arq, T, .9, LZ + .5, LX + .25, H * FLOORS + .5, LZ / 2, M.wall, E.arq);
-
-  // Instalações: prumadas e ramais
-  pipe(groups.mep, [10.6, -.6, 1.2], [10.6, H * FLOORS + .6, 1.2], .07, M.pipe);
-  pipe(groups.mep, [1.4, -.6, 6.8], [1.4, H * FLOORS + .4, 6.8], .055, M.pipeY);
-  for (var k = 1; k <= FLOORS; k++) {
-    var py = k * H - .75;
-    pipe(groups.mep, [10.6, py, 1.2], [5.4, py, 1.2], .06, M.pipe);
-    pipe(groups.mep, [1.4, py + .1, 6.8], [1.4, py + .1, 2.2], .045, M.pipeY);
-    pipe(groups.mep, [1.4, py + .1, 2.2], [6.6, py + .1, 2.2], .045, M.pipeY);
-  }
-  // Interferência: ramal que atravessa a viga do eixo x = 8 no 1º pavimento
-  var cy = H - .3;
-  pipe(groups.mep, [10.6, cy, 3.2], [6.2, cy, 3.2], .06, M.pipe);
-  var ring = new THREE.Mesh(new THREE.TorusGeometry(.75, .09, 14, 48), M.clash);
-  ring.position.set(8, cy, 3.2); ring.rotation.y = Math.PI / 2; groups.clash.add(ring);
-  var core = new THREE.Mesh(new THREE.SphereGeometry(.26, 20, 16), M.clash); core.position.copy(ring.position); groups.clash.add(core); ring.renderOrder = core.renderOrder = 10;
-
-  model.position.set(-LX / 2, -2.4, -LZ / 2);
-
-  // Visibilidade por disciplina, com transição suave
-  var target = { arq: 1, est: 1, mep: 1, clash: 0 };
-  var current = { arq: 1, est: 1, mep: 1, clash: 0 };
-  var PRESETS = {
-    all:   { arq: 1, est: 1, mep: 1, clash: 0 },
-    arq:   { arq: 1, est: .12, mep: 0, clash: 0 },
-    est:   { arq: 0, est: 1, mep: .1, clash: 0 },
-    mep:   { arq: .07, est: .18, mep: 1, clash: 0 },
-    clash: { arq: 0, est: .45, mep: 1, clash: 1 }
-  };
-  function applyOpacity() {
-    groups.arq.traverse(function (o) { setOp(o, current.arq); });
-    groups.est.traverse(function (o) { setOp(o, current.est); });
-    groups.mep.traverse(function (o) { setOp(o, current.mep); });
-    groups.clash.traverse(function (o) { setOp(o, current.clash); });
-    Object.keys(groups).forEach(function (k) { groups[k].visible = current[k] > .01; });
-  }
-  function setOp(o, v) {
-    if (!o.material) return;
-    var m = o.material; var base = m.userData.base == null ? 1 : m.userData.base;
-    if (!o.userData.own) { o.material = m.clone(); o.material.userData.base = base; o.userData.own = true; m = o.material; }
-    m.opacity = base * v; m.transparent = true; m.depthWrite = m.opacity > .9;
-  }
-
-  var buttons = document.querySelectorAll(".mode");
-  buttons.forEach(function (b) {
-    b.addEventListener("click", function () {
-      buttons.forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
-      target = PRESETS[b.dataset.mode];
-      clashTag.hidden = b.dataset.mode !== "clash";
-      if (b.dataset.mode === "clash") { yawTarget = -0.35; }
-      wake();
-    });
-  });
-
-  // Câmera orbital simples: arrastar na horizontal gira, giro automático lento
-  var yaw = 0.7, yawTarget = 0.7, pitch = 0.42, dragging = false, lastX = 0, idle = 0;
-  host.addEventListener("pointerdown", function (e) { dragging = true; lastX = e.clientX; idle = 0; wake(); });
-  window.addEventListener("pointerup", function () { dragging = false; });
-  window.addEventListener("pointermove", function (e) {
-    if (!dragging) return;
-    yawTarget -= (e.clientX - lastX) * 0.008; lastX = e.clientX; wake();
-  });
-
-  function resize() {
-    var w = host.clientWidth, h = host.clientHeight;
-    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-  }
-  window.addEventListener("resize", function () { resize(); wake(); });
-  resize();
-
-  var visible = true, running = false;
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) wake(); }).observe(host);
-  }
-  function wake() { if (!running && visible) { running = true; requestAnimationFrame(loop); } }
-
-  var last = performance.now();
-  function loop(now) {
-    var dt = Math.min((now - last) / 1000, .05); last = now;
-    if (!dragging && !reduce) { idle += dt; if (idle > 1.2) yawTarget += dt * 0.12; }
-    yaw += (yawTarget - yaw) * Math.min(1, dt * 6);
-    var moving = Math.abs(yawTarget - yaw) > .0005;
-    var changed = false;
-    Object.keys(current).forEach(function (k) {
-      var d = target[k] - current[k];
-      if (Math.abs(d) > .002) { current[k] += d * Math.min(1, dt * 7); changed = true; } else current[k] = target[k];
-    });
-    applyOpacity();
-    var R = host.clientWidth < 520 ? 38 : 40;
-    camera.position.set(Math.sin(yaw) * Math.cos(pitch) * R, Math.sin(pitch) * R, Math.cos(yaw) * Math.cos(pitch) * R);
-    camera.lookAt(0, .6, 0);
-    var pulse = 1 + Math.sin(now / 260) * .12; ring.scale.set(pulse, pulse, pulse);
-    renderer.render(scene, camera);
-    if (visible && (moving || changed || dragging || (!reduce) || current.clash > 0)) requestAnimationFrame(loop);
-    else running = false;
-  }
-  wake();
-})();
-</script>
+<script src="js/modelo.js"></script>
 </body>
 </html>
