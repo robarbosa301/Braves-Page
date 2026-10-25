@@ -23,7 +23,7 @@
   var rim = new THREE.DirectionalLight(0xC9D6E0, 0.35); rim.position.set(-12, 8, -14); scene.add(rim);
 
   var model = new THREE.Group(); scene.add(model);
-  var NAMES = ["arq", "est", "fix", "hid", "ele", "terr", "clash"];
+  var NAMES = ["arq", "est", "fix", "mob", "hid", "ele", "terr", "clash"];
   var G = {};
   NAMES.forEach(function (k) { G[k] = new THREE.Group(); model.add(G[k]); });
 
@@ -44,7 +44,7 @@
     eleWall: mat(0xE3B341, 1, { roughness: .5 }), eleSlab: mat(0xE07B2E, 1, { roughness: .5 }), eleUnder: mat(0x3A3A3A, 1),
     plate: mat(0xF4F3EE, 1, { roughness: .3 }), panel: mat(0x8E8E8A, 1, { roughness: .4, metalness: .4 }), breaker: mat(0x1E1E1E, 1), meter: mat(0xA9ADB0, 1, { metalness: .4, roughness: .4 }),
     lamp: mat(0xFFE8B0, 1, { emissive: 0xFFD98A, emissiveIntensity: .8 }), pole: mat(0x8C8A84, 1),
-    ground: mat(0x1F1E1B, .94), clash: mat(0xD2604A, .95, { emissive: 0xD2604A, emissiveIntensity: .9, depthTest: false })
+    ground: mat(0x060605, .94), clash: mat(0xD2604A, .95, { emissive: 0xD2604A, emissiveIntensity: .9, depthTest: false })
   };
   var E = { est: edgeMat(0x4A4740, .7), arq: edgeMat(0x8A867C, .55), fix: edgeMat(0x9A968C, .6) };
 
@@ -120,6 +120,11 @@
     wallX(8, 4.1, 7.9, y0, wh);
     wallX(2.6, .1, 1.4, y0, wh); wallX(2.6, 2.2, 2.4, y0, wh); wallX(2.6, 1.4, 2.2, y0 + 2.1, wh - 2.1);
     wallZ(2.4, .1, 2.6, y0, wh);
+    if (fl === 1) { // quartos do pavimento superior
+      wallZ(4, .1, 2.8, y0, wh); wallZ(4, 3.6, 6.8, y0, wh); wallZ(4, 7.6, 7.9, y0, wh);
+      wallZ(4, 2.8, 3.6, y0 + 2.1, wh - 2.1); wallZ(4, 6.8, 7.6, y0 + 2.1, wh - 2.1);
+      wallX(4, 4.1, 7.9, y0, wh);
+    }
   }
   // platibanda
   box(G.arq, LX + .5, .9, T, LX / 2, H * FLOORS + .5, LZ + .25, M.wall, E.arq);
@@ -148,12 +153,77 @@
   vaso(10.2, FL[1], .08); lavatorio(11.3, FL[1], .08); chuveiro(8.1, 9.4, .08, 1.3, FL[1]);
   vaso(.9, FL[1], .08); lavatorio(1.9, FL[1], .08); chuveiro(.08, 1.3, 1.2, 2.32, FL[1]);
   // térreo: cozinha e lavabo
-  box(G.fix, 2.7, .82, .58, 10.55, .41, .37, M.cabinet, E.fix);
   box(G.fix, 2.8, .04, .62, 10.55, .84, .39, M.granite);
   box(G.fix, .5, .06, .36, 10.4, .86, .4, M.steel);
   cyl(G.fix, .015, .26, 10.4, 1.0, .15, M.steel, 8);
-  box(G.fix, .7, 1.8, .66, 8.5, .9, .45, M.fridge, E.fix);
   vaso(.9, FL[0], .08); lavatorio(1.9, FL[0], .08);
+
+
+  /* ---------- mobiliário e marcenaria ---------- */
+  var W = {
+    wood: mat(0xB08559, 1, { roughness: .7 }), mdf: mat(0xE6E1D6, 1, { roughness: .6 }), graf: mat(0x3A3936, 1, { roughness: .5 }),
+    fabric: mat(0x6E6A63, 1, { roughness: .95 }), cushion: mat(0x8C877E, 1, { roughness: .95 }), linen: mat(0xEDEAE2, 1, { roughness: .95 }),
+    rug: mat(0x4A4740, 1, { roughness: 1 }), screen: mat(0x0E0E10, 1, { roughness: .2, metalness: .3 }), mirror: mat(0xC9D4DA, 1, { roughness: .05, metalness: .8 }),
+    plant: mat(0x5E7B4E, 1, { roughness: .9 })
+  };
+  var EM = edgeMat(0x3A352C, .45);
+  function m(w, h, d, x, y, z, mt, noEdge) { return box(G.mob, w, h, d, x, y, z, mt, noEdge ? null : EM); }
+
+  // --- térreo · cozinha planejada (x 8–12, z 0–4)
+  m(2.7, .82, .58, 10.55, .41, .37, W.graf);                       // armário de base sob a bancada
+  m(2.7, .7, .34, 10.55, 1.85, .25, W.graf);                       // armários aéreos
+  m(.62, 2.3, .7, 11.58, 1.15, 1.1, W.graf);                       // torre quente
+  box(G.mob, .02, .5, .56, 11.26, 1.25, 1.1, W.screen);            // forno
+  m(.7, 1.8, .66, 8.5, .9, .45, M.fridge);                         // geladeira
+  // --- térreo · sala de jantar (x 4–8, z 0–4)
+  m(1.8, .05, .9, 6, .76, 2, W.wood); m(.08, .74, .08, 5.25, .37, 1.65, W.wood); m(.08, .74, .08, 6.75, .37, 1.65, W.wood); m(.08, .74, .08, 5.25, .37, 2.35, W.wood); m(.08, .74, .08, 6.75, .37, 2.35, W.wood);
+  [[5.4, 1.35], [6, 1.35], [6.6, 1.35], [5.4, 2.65], [6, 2.65], [6.6, 2.65]].forEach(function (c) {
+    var back = c[1] < 2 ? c[1] - .2 : c[1] + .2;
+    m(.42, .05, .42, c[0], .46, c[1], W.wood); m(.42, .45, .04, c[0], .7, back, W.wood);
+    m(.04, .44, .04, c[0] - .18, .22, c[1] - .18, W.wood, true); m(.04, .44, .04, c[0] + .18, .22, c[1] - .18, W.wood, true);
+    m(.04, .44, .04, c[0] - .18, .22, c[1] + .18, W.wood, true); m(.04, .44, .04, c[0] + .18, .22, c[1] + .18, W.wood, true);
+  });
+  m(1.2, .02, .4, 6, 1.6, .1, W.wood);                             // aparador / nicho
+  // --- térreo · sala de estar (x 0–8, z 4–8): sofá, tapete, mesa de centro, painel de TV
+  m(2.6, .015, 2.0, 4.6, .008, 6, W.rug, true);
+  m(.95, .42, 2.4, 3.3, .21, 6, W.fabric); m(.25, .5, 2.4, 2.95, .55, 6, W.fabric);
+  m(.95, .25, .2, 3.3, .55, 4.9, W.fabric); m(.95, .25, .2, 3.3, .55, 7.1, W.fabric);
+  m(.6, .12, .7, 3.4, .48, 5.6, W.cushion); m(.6, .12, .7, 3.4, .48, 6.4, W.cushion);
+  m(.9, .35, .6, 4.9, .175, 6, W.wood);
+  for (var rs = 0; rs < 12; rs++) m(.04, 2.3, .09, 7.88, 1.15, 4.95 + rs * .19, W.wood, true); // painel ripado
+  m(.45, .45, 2.0, 7.65, .3, 6, W.wood);                            // rack
+  box(G.mob, .05, .82, 1.45, 7.83, 1.45, 6, W.screen);               // TV
+  cyl(G.mob, .18, .5, .55, .25, 7.4, W.graf, 16); cyl(G.mob, .35, .5, .55, .75, 7.4, W.plant, 12);
+  // --- térreo · escritório (x 8–12, z 4–8)
+  m(1.8, .04, .65, 10.8, .75, 4.45, W.wood); m(.04, .73, .6, 9.95, .37, 4.45, W.wood); m(.04, .73, .6, 11.65, .37, 4.45, W.wood);
+  m(.48, .08, .48, 10.8, .48, 5.1, W.graf); m(.48, .5, .06, 10.8, .78, 5.36, W.graf); cyl(G.mob, .03, .44, 10.8, .22, 5.1, M.steel, 8);
+  m(.38, 2.2, 3.4, 8.3, 1.1, 6, W.mdf);
+  for (var sh = 1; sh < 5; sh++) m(.4, .025, 3.36, 8.32, sh * .44, 6, W.wood, true);
+  box(G.mob, .56, .36, .03, 10.8, 1.0, 4.2, W.screen);
+  // --- banheiros: gabinetes e espelhos
+  [[11.3, FL[1]], [1.9, FL[1]], [1.9, FL[0]]].forEach(function (b) {
+    m(.6, .5, .42, b[0], b[1] + .3, .3, W.mdf);
+    box(G.mob, .6, .8, .02, b[0], b[1] + 1.55, .1, W.mirror);
+  });
+  // --- superior · suíte (x 8–12, z 4–8): cama casal, criados, guarda-roupa
+  var u = FL[1];
+  m(2.0, .3, 1.6, 9.15, u + .15, 6.1, W.wood); m(1.95, .22, 1.55, 9.17, u + .41, 6.1, W.linen);
+  m(.08, 1.1, 2.4, 8.12, u + .55, 6.1, W.wood);                     // cabeceira
+  m(.35, .1, .55, 8.45, u + .57, 5.65, W.linen, true); m(.35, .1, .55, 8.45, u + .57, 6.55, W.linen, true);
+  m(.45, .5, .4, 8.35, u + .25, 4.75, W.wood); m(.45, .5, .4, 8.35, u + .25, 7.45, W.wood);
+  m(2.2, 2.4, .6, 10.8, u + 1.2, 4.42, W.mdf);                      // guarda-roupa
+  for (var gp = 1; gp < 4; gp++) m(.02, 2.3, .02, 9.7 + gp * .55, u + 1.2, 4.73, W.wood, true);
+  // --- superior · quarto 2 (x 0–4, z 4–8): cama de solteiro e guarda-roupa
+  m(2.0, .3, 1.0, 1.15, u + .15, 6.6, W.wood); m(1.95, .2, .95, 1.17, u + .4, 6.6, W.linen); m(.06, .9, 1.1, .12, u + .45, 6.6, W.wood);
+  m(.45, .5, .4, .35, u + .25, 5.75, W.wood);
+  m(2.4, 2.4, .6, 1.45, u + 1.2, 4.42, W.mdf);
+  for (var gq = 1; gq < 4; gq++) m(.02, 2.3, .02, .25 + gq * .6, u + 1.2, 4.73, W.wood, true);
+  m(1.0, .04, .5, 3.4, u + .75, 7.6, W.wood); m(.04, .73, .45, 2.92, u + .37, 7.6, W.wood); m(.04, .73, .45, 3.88, u + .37, 7.6, W.wood);
+  // --- superior · quarto 3 (x 4–8, z 4–8): cama casal e guarda-roupa
+  m(2.0, .3, 1.6, 6.85, u + .15, 6.2, W.wood); m(1.95, .22, 1.55, 6.83, u + .41, 6.2, W.linen);
+  m(.08, 1.0, 2.2, 7.88, u + .5, 6.2, W.wood);
+  m(2.3, 2.4, .6, 5.3, u + 1.2, 4.42, W.mdf);
+  for (var gr = 1; gr < 4; gr++) m(.02, 2.3, .02, 4.15 + gr * .58, u + 1.2, 4.73, W.wood, true);
 
   /* ---------- terreno ---------- */
   box(G.terr, 21, .02, 14, 7.5, -.16, 4.4, M.ground);
@@ -295,14 +365,17 @@
 
   /* ---------- disciplinas ---------- */
   var PRESETS = {
-    all:   { arq: 1,   est: 1,   fix: 1,   hid: 1, ele: 1, terr: 1,   clash: 0 },
-    arq:   { arq: 1,   est: .12, fix: 1,   hid: 0, ele: 0, terr: 1,   clash: 0 },
-    est:   { arq: 0,   est: 1,   fix: 0,   hid: 0, ele: 0, terr: .35, clash: 0 },
-    hid:   { arq: .06, est: .14, fix: 1,   hid: 1, ele: 0, terr: .22, clash: 0 },
-    ele:   { arq: .06, est: .14, fix: .25, hid: 0, ele: 1, terr: .22, clash: 0 },
-    clash: { arq: 0,   est: .4,  fix: .2,  hid: 1, ele: 0, terr: .12, clash: 1 }
+    all:   { arq: 1,   est: 1,   fix: 1,   mob: 1, hid: 1, ele: 1, terr: 1,   clash: 0 },
+    arq:   { arq: 1,   est: .12, fix: 1,   mob: 0, hid: 0, ele: 0, terr: 1,   clash: 0 },
+    est:   { arq: 0,   est: 1,   fix: 0,   mob: 0, hid: 0, ele: 0, terr: .35, clash: 0 },
+    mob:   { arq: .1,  est: .1,  fix: 1,   mob: 1, hid: 0, ele: 0, terr: .3,  clash: 0 },
+    hid:   { arq: .06, est: .14, fix: 1,   mob: 0, hid: 1, ele: 0, terr: .22, clash: 0 },
+    ele:   { arq: .06, est: .14, fix: .25, mob: .15, hid: 0, ele: 1, terr: .22, clash: 0 },
+    clash: { arq: 0,   est: .4,  fix: .2,  mob: 0, hid: 1, ele: 0, terr: .12, clash: 1 }
   };
+
   var LEGENDS = {
+    mob: [["#B08559", "Marcenaria em madeira"], ["#E6E1D6", "Planejados em MDF"], ["#3A3936", "Cozinha planejada"], ["#6E6A63", "Estofados"], ["#EDEAE2", "Camas"], ["#0E0E10", "TV e eletros"]],
     hid: [["#4C9BE8", "Água fria"], ["#A0693F", "Esgoto"], ["#9A9A94", "Ventilação"], ["#9C86D6", "Águas pluviais"], ["#2F6FB0", "Caixa d'água"], ["#8A877F", "Fossa, sumidouro e caixas"]],
     ele: [["#E3B341", "Eletroduto na parede"], ["#E07B2E", "Eletroduto na laje"], ["#3A3A3A", "Entrada subterrânea"], ["#8E8E8A", "QDC"], ["#F4F3EE", "Tomadas e interruptores"], ["#FFE8B0", "Pontos de luz"]]
   };
@@ -338,7 +411,7 @@
       clashTag.hidden = mode !== "clash";
       showLegend(mode);
       if (mode === "clash") yawTarget = nearestYaw(yaw, -0.55);
-      if (mode === "hid" || mode === "ele") yawTarget = nearestYaw(yaw, 0.75);
+      if (mode === "hid" || mode === "ele" || mode === "mob") yawTarget = nearestYaw(yaw, 0.75);
       zoomTarget = ZOOM[mode]; idle = -2.5;
       wake();
     });
@@ -346,7 +419,7 @@
   function nearestYaw(from, to) { var k = Math.round((from - to) / (2 * Math.PI)); return to + k * 2 * Math.PI; }
 
   /* ---------- câmera ---------- */
-  var ZOOM = { all: 1, arq: 1, est: 1, hid: .86, ele: .86, clash: .8 }, zoom = 1, zoomTarget = 1;
+  var ZOOM = { all: 1, arq: 1, est: 1, mob: .86, hid: .86, ele: .86, clash: .8 }, zoom = 1, zoomTarget = 1;
   var yaw = 0.7, yawTarget = 0.7, pitch = 0.42, dragging = false, lastX = 0, idle = 0;
   host.addEventListener("pointerdown", function (e) { dragging = true; lastX = e.clientX; idle = 0; wake(); });
   window.addEventListener("pointerup", function () { dragging = false; });
